@@ -5,6 +5,7 @@ from student import Student
 fastapi_app = FastAPI()
 
 students = []
+current_id = 1
 @fastapi_app.get("/")
 def root():
     return {"message": "Hello World"}
@@ -19,29 +20,33 @@ def get_students_by_limit(limit: int = 3):
 
 @fastapi_app.post("/student")
 def create_student(student:Student):
+    global current_id
+    student.id = current_id
     students.append(student)
+    current_id += 1
     return student
 
 @fastapi_app.get("/students/{student_id}", response_model=Student)
 def get_student(student_id:int) -> Student:
-    if student_id < len(students):
-        return students[student_id]
-    else:
+    student = next((s for s in students if s.id == student_id), None)
+    if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
+    return student
 
 @fastapi_app.put("/students/{student_id}")
-def update_student(student_id:int, student:Student):
-    if student_id < len(students):
-      students[student_id] = student
-      return student
-    else:
+def update_student(student_id:int, new_student:Student):
+    student = next((s for s in students if s.id == student_id), None)
+    if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
+    student.name = new_student.name
+    student.email = new_student.email
+    student.is_active = new_student.is_active
+    return student
 
 @fastapi_app.delete("/students/{student_id}")
 def delete_student(student_id:int):
-    if student_id < len(students):
-      student = students[student_id]
-      students.remove(student)
-      return students
-    else:
+    student = next((s for s in students if s.id == student_id), None)
+    if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
+    students.remove(student)
+    return students
